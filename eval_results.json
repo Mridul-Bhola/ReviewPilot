@@ -1,0 +1,39 @@
+[
+  {
+    "name": "undefined_variable",
+    "expected_issues": [
+      "nmae",
+      "undefined"
+    ],
+    "review": "Here is the review of the provided snippet:\n\n### 1. Primary Bug (Confirmed by Linter)\n* **Typo / `NameError`**: `nmae` on line 2 is undefined. Calling this function will immediately crash with a runtime `NameError: name 'nmae' is not defined`. It should be `name`.\n\n### 2. Software Engineering Judgment & Risks\n* **Fragile String Concatenation**: Using the `+` operator assumes `name` is always a `str`. If a caller passes a non-string value (e.g., `greet(123)` or `greet(None)`), this will raise a `TypeError: can only concatenate str (not \"int\") to str`.\n* **Pythonic Formatting**: Modern Python (3.6+) prefers **f-strings** over `+` concatenation. F-strings automatically call `__str__()` on interpolated variables, preventing `TypeError` for non-string inputs and improving readability.\n* **Missing Type Hints**: Adding a type annotation makes contracts explicit for callers and static analysis tools.\n\n---\n\n### Suggested Fix\n\n```python\ndef greet(name: str) -> None:\n    print(f\"Hello {name}\")\n```"
+  },
+  {
+    "name": "unused_import",
+    "expected_issues": [
+      "os",
+      "unused"
+    ],
+    "review": "Here is the code review based on the linter results and software engineering best practices.\n\n---\n\n### 1. Linter Findings (Confirmed)\n* **Unused Import (`F401`)**: `import os` is unused and adds unnecessary overhead. Remove it.\n* **Import Formatting (`I001`)**: Unused imports distort vertical spacing per PEP 8 guidelines.\n\n---\n\n### 2. Engineering Review: Bugs, Risks & Edge Cases\n\n* **Type Safety & Implicit Behavior**:\n  * The `+` operator behaves radically differently depending on types (e.g., `1 + 2 = 3`, `\"1\" + \"2\" = \"12\"`, `[1] + [2] = [1, 2]`). Without type hints, caller intent is ambiguous.\n* **Uncaught Runtime Errors**:\n  * **`TypeError`**: Mixing incompatible types (e.g., `add(1, \"2\")` or `add(None, 5)`) will raise an unhandled `TypeError` at runtime.\n* **Missing Documentation**:\n  * Lacks a docstring explaining expected argument types and return values.\n\n---\n\n### 3. Recommended Fix\n\nIf this function is strictly meant for numeric addition:\n\n```python\nfrom typing import TypeVar\n\nT = TypeVar(\"T\", int, float)\n\n\ndef add(a: T, b: T) -> T:\n    \"\"\"Add two numbers of the same numeric type.\n\n    :param a: First number (int or float)\n    :param b: Second number (int or float)\n    :return: Sum of a and b\n    \"\"\"\n    return a + b\n```\n\n*If generic addition (strings/lists) is intentionally supported, use a generic overload or broader type hints like `Any`, but explicit bounds (`int | float`) are standard for arithmetic utility functions.*"
+  },
+  {
+    "name": "mutable_default_arg",
+    "expected_issues": [
+      "mutable",
+      "default"
+    ],
+    "review": "### Code Review\n\n#### 1. Bug / Primary Concern: Persistent State (Mutable Default Argument)\nAs flagged by the linter, using `items=[]` creates a single list instance at function definition time (module load), not on each function call. \n\n* **Impact:** Subsequent calls to `append_item` that omit the `items` argument will share and continually mutate the same list, leaking state across calls.\n* **Example:**\n  ```python\n  print(append_item(1))  # Output: [1]\n  print(append_item(2))  # Output: [1, 2]  (Unexpected if caller expects [2])\n  ```\n* **Thread Safety Risk:** In a multi-threaded environment, concurrent calls relying on the default argument will mutate the same underlying list without synchronization, causing race conditions.\n\n#### 2. Secondary Consideration: In-Place Mutation of Passed Arguments\nWhen a caller explicitly passes a list (e.g., `my_list = [1]`, `append_item(2, my_list)`), the function mutates `my_list` in place *and* returns it. While not strictly a bug, callers should be aware that their original list is modified.\n\n---\n\n### Recommended Fix\n\nUse `None` as the default value and instantiate a fresh list inside the function body:\n\n```python\ndef append_item(item, items=None):\n    if items is None:\n        items = []\n    items.append(item)\n    return items\n```"
+  },
+  {
+    "name": "divide_by_zero_on_empty",
+    "expected_issues": [
+      "empty",
+      "zero"
+    ],
+    "review": "Here is my senior engineering review of the code.\n\n---\n\n### Key Issues & Edge Cases\n\n1. **`ZeroDivisionError` on Empty Inputs (Critical)**\n   * **Issue:** If `numbers` is empty (`[]`, `()`, etc.), `len(numbers)` evaluates to `0`, throwing an unhandled `ZeroDivisionError`.\n   * **Fix:** Check if the collection is empty before calculating, and either return `0.0` or raise a clear `ValueError`.\n\n2. **Incompatibility with Iterators / Generators (Bug)**\n   * **Issue:** If `numbers` is a generator or iterator (e.g., `average(x for x in range(5))`), `sum(numbers)` will consume the generator entirely, and `len(numbers)` will subsequently raise a `TypeError` because iterators do not implement `__len__`.\n   * **Fix:** Either accept only `Sequence` types (like `list` or `tuple`) or convert the iterable to a `list` inside the function.\n\n3. **Missing Type Annotations & Safety**\n   * **Issue:** The function accepts any type. Passing non-iterables (e.g., `average(42)`) or sequences containing non-numeric types will cause runtime crashes deep in `sum()`.\n\n4. **Floating-Point Precision Loss (Minor)**\n   * **Issue:** Built-in `sum()` can accumulate floating-point rounding errors when summing large lists of floats. `math.fsum()` provides exact floating-point summation if high precision is needed.\n\n---\n\n### Recommendation\n\nFor simple standard library usage, prefer Python's built-in **`statistics.mean()`**, which already handles iterators and empty collection checks properly:\n\n```python\nfrom statistics import mean\n\n# Handles lists, tuples, and generators safely\nresult = mean(numbers)\n```\n\nIf you must implement it manually, rewrite it as follows:\n\n```python\nfrom collections.abc import Sequence\nfrom typing import Union\n\ndef average(numbers: Sequence[Union[int, float]]) -> float:\n    \"\"\"Calculate the arithmetic mean of a sequence of numbers.\"\"\"\n    if not numbers:\n        raise ValueError(\"Cannot calculate the average of an empty sequence.\")\n    return sum(numbers) / len(numbers)\n```"
+  },
+  {
+    "name": "clean_code",
+    "expected_issues": [],
+    "review": "### Senior Engineer Review\n\nThe code is syntactically correct and passes basic linting, but it lacks defensive programming practices and type constraints.\n\n#### 1. Missing Type Hints and Unintended Behavior\nBecause Python is dynamically typed, the `*` operator behaves differently depending on the input types:\n* **Sequence repetition:** `multiply(\"a\", 3)` returns `\"aaa\"`.\n* **Runtime failure:** `multiply(\"a\", \"b\")` raises an unhandled `TypeError`.\n\nIf this function is intended strictly for mathematical multiplication, add type hints to communicate intent and enable static analysis:\n```python\nfrom typing import Union\n\nNumber = Union[int, float]\n\ndef multiply(a: Number, b: Number) -> Number:\n    return a * b\n```\n\n#### 2. Resource Allocation Risk (Edge Case)\nIf sequence multiplication occurs with large inputs (e.g., `multiply(\"a\", 10**9)`), Python will attempt to allocate a multi-gigabyte string in memory, which can lead to severe performance degradation or an `MemoryError` crash.\n\n#### 3. Redundancy / API Design\nIf this function is being passed as a callback or higher-order function argument (e.g., in `reduce` or `map`), prefer using the standard library's `operator.mul` instead of defining a custom wrapper:\n```python\nimport operator\n\n# Use operator.mul instead of a custom multiply function\n```"
+  }
+]
