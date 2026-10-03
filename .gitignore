@@ -1,0 +1,23 @@
+# --- Secrets / environment (NEVER commit these) ---
+.env
+*.env
+# (your API keys live in the terminal via export, not in files — keep it that way)
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# --- Eval run output (regenerated each run) ---
+eval_results.json
+
+# --- Node / React dashboard ---
+dashboard/node_modules/
+dashboard/dist/
+node_modules/
+
+# --- OS / editor junk ---
+.DS_Store
+.vscode/
+.idea/
